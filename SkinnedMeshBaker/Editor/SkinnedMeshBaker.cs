@@ -107,8 +107,10 @@ namespace SupportScripts
 
                         // RootBoneの変換matrixで頂点位置を変換
                         Matrix4x4 rootTransform = s.skin.rootBone.transform.localToWorldMatrix;
+                        Matrix4x4 objectTransform = s.skin.gameObject.transform.worldToLocalMatrix;
+                        Matrix4x4 matrix = objectTransform * rootTransform;
                         for(int i=0; i<orgVerts.Length; ++i){
-                            newVerts[i] = rootTransform.MultiplyPoint3x4(clothVerts[indexMapList[i]]);
+                            newVerts[i] = matrix.MultiplyPoint3x4(clothVerts[indexMapList[i]]);
                         }
                         // 変換した頂点をセット
                         s.mesh.SetVertices(newVerts);
