@@ -1,4 +1,5 @@
-﻿// Created by SHAJIKUworks
+// The original was Created by SHAJIKUworks
+// customized by takec
 
 using System.IO;
 using System.Linq;
@@ -121,7 +122,7 @@ namespace SupportScripts
 
             // Prefabの保存
             var prefabPath = Path.Combine(destDirectory, newRoot.name + ".prefab").Replace("\\", "/");
-            PrefabUtility.CreatePrefab(prefabPath, newRoot.gameObject);
+            PrefabUtility.SaveAsPrefabAsset(newRoot.gameObject, prefabPath);
             AssetDatabase.SaveAssets();
 
             EditorUtility.ClearProgressBar();
