@@ -1,4 +1,4 @@
-// The original was Created by SHAJIKUworks
+﻿// The original was Created by SHAJIKUworks
 // customized by takec
 
 using System.IO;
@@ -67,6 +67,57 @@ namespace SupportScripts
                 skinTransform.localScale = Vector3.one;
 
                 s.skin.BakeMesh(s.mesh);
+
+                // Clothコンポーネントが付いている場合、頂点情報がまともでないので修正。
+                var cloth = s.skin.gameObject.GetComponent<Cloth>();
+                if(cloth != null){
+                    // 変形前の頂点情報から、重複点を検出し、Clothの頂点とのマッピングを作成。
+                    Vector3[] orgVerts = s.skin.sharedMesh.vertices;
+                    int[] indexMapList = new int[orgVerts.Length];
+                    for(int i=0; i<indexMapList.Length; ++i){
+                        indexMapList[i] = -1;
+                    }
+                    
+                    int mapInd=0;
+                    for(int i=0; i<orgVerts.Length; ++i){
+                        // 既に重複頂点としてmappingされていたらスキップ
+                        if(indexMapList[i] != -1) continue;
+                        // まだ重複頂点としてマッピングされていなかったら新規頂点としてマッピング
+                        indexMapList[i] = mapInd;
+                        // 新規頂点と同じ位置にある点を同じインデックスにマッピング
+                        Vector3 targetPos=orgVerts[i];
+                        for(int j=i; j<orgVerts.Length; ++j){
+                            if(targetPos == orgVerts[j]){
+                                indexMapList[j] = mapInd;
+                            }
+                        }
+                        // マッピングするインデックスをインクリメント
+                        mapInd += 1;
+                    }
+
+                    // Clothの頂点情報でmeshの頂点を更新
+                    var clothVerts = cloth.vertices;
+                    if(clothVerts.Length != mapInd){
+                        // 頂点数が異なり、マッピングに失敗していたら中止
+                        Debug.LogError("clothVerts mapping error." + s.skin.gameObject.name);
+                        Debug.Log("clothVerts.Length=" + clothVerts.Length);
+                        Debug.Log("mapInd=" + mapInd);
+                    }else{
+                        var newVerts = s.mesh.vertices;
+
+                        // RootBoneの変換matrixで頂点位置を変換
+                        Matrix4x4 rootTransform = s.skin.rootBone.transform.localToWorldMatrix;
+                        for(int i=0; i<orgVerts.Length; ++i){
+                            newVerts[i] = rootTransform.MultiplyPoint3x4(clothVerts[indexMapList[i]]);
+                        }
+                        // 変換した頂点をセット
+                        s.mesh.SetVertices(newVerts);
+                        // 法線、接線、境界を更新
+                        s.mesh.RecalculateNormals();
+                        s.mesh.RecalculateTangents();
+                        s.mesh.RecalculateBounds();
+                    }
+                }
 
                 skinTransform.localPosition = beforeTransformParams.localPosition;
                 skinTransform.localRotation = beforeTransformParams.localRotation;
